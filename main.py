@@ -64,13 +64,13 @@ def left_right_side(ox: int, oy: int) -> Group:
 		(True, PINSIZE),
 
 		(False, 0),
-		(False, PINSIZE),
+		(False, PINSIZE - TIGHTSIZE),
 
 		(True,  0),
-		(True, PINSIZE, "A"),
+		(True, PINSIZE + TIGHTSIZE + TIGHTSIZE, "A"),
 
 		(False, 0),
-		(False, PINSIZE),
+		(False, PINSIZE - TIGHTSIZE),
 
 		(True,  0),
 		(True, PINSIZE),
@@ -121,13 +121,19 @@ def front_back_side(ox: int, oy: int) -> Group:
 	points = [
 		(False, PINSIZE), 
 		(False, PINSIZE), 
-	] + [
+	
+		(True, 0),
+		(True, PINSIZE + TIGHTSIZE, "A"),
+
+		(False, 0),
+		(False, PINSIZE - TIGHTSIZE - TIGHTSIZE), 
+
 		(True, 0),
 		(True, PINSIZE, "A"),
 
 		(False, 0),
 		(False, PINSIZE), 
-	] * 2
+	]
 
 	p = Path(f"outlineA{ox}{oy}", False)
 
@@ -150,15 +156,15 @@ def top_bottom_side(ox: int, oy: int) -> Group:
 	points = [
 		(False, PINSIZE),
 		(True, 0),
-		(True, PINSIZE),
+		(True, PINSIZE + TIGHTSIZE),
 		(False, 0),
 
-		(False, PINSIZE),
+		(False, PINSIZE - TIGHTSIZE),
 		(True, 0),
-		(True, PINSIZE, "A"),
+		(True, PINSIZE + TIGHTSIZE, "A"),
 		(False, 0),
 
-		(False, PINSIZE),
+		(False, PINSIZE - TIGHTSIZE),
 		(True, 0),
 		(True, PINSIZE),
 		(False, 0),
@@ -167,18 +173,15 @@ def top_bottom_side(ox: int, oy: int) -> Group:
 	points2 = [
 		(False, PINSIZE * 2),
 		(True, 0),
-		(True, PINSIZE),
+		(True, PINSIZE + TIGHTSIZE),
 		(False, 0),
 
-		(False, PINSIZE),
+		(False, PINSIZE - TIGHTSIZE),
 		(True, 0),
 		(True, PINSIZE, "A"),
 		(False, 0),
 
 		(False, PINSIZE),
-		# (True, 0),
-		# (True, PINSIZE),
-		# (False, 0),
 	]
 
 	p = Path(f"outlineA{ox}{oy}", False)

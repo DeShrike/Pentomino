@@ -17,6 +17,7 @@ GUTTER = 5              # spacing between sides
 DOTRADIUS = 1.5
 
 ATTACH_WIDTH = 1           # width of the attach line
+TIGHTSIZE = 0.1
 
 PINCOUNT = 3 * FACTOR
 PINSIZE = (DICESIZE / 7) # / FACTOR
