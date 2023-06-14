@@ -16,7 +16,7 @@ DICESIZE = 21 * FACTOR  # should be multiple of THICKNESS and 7
 GUTTER = 5              # spacing between sides
 DOTRADIUS = 1.5
 
-ATTACH_WIDTH = 0.5           # width of the attach line
+ATTACH_WIDTH = 1           # width of the attach line
 
 PINCOUNT = 3 * FACTOR
 PINSIZE = (DICESIZE / 7) # / FACTOR

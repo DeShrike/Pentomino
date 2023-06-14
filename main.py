@@ -76,6 +76,30 @@ def left_right_side(ox: int, oy: int) -> Group:
 		(True, PINSIZE),
 	]
 
+	# points2 = [
+	# 	(True, 0), 
+	# 	(True, PINSIZE),
+
+	# 	(False, 0),
+	# 	(False, PINSIZE),
+
+	# 	(True,  0),
+	# 	(True, PINSIZE, "A"),
+
+	# 	(False, 0),
+	# 	(False, PINSIZE),
+
+	# 	(True,  0),
+	# 	(True, PINSIZE),
+
+	# 	(False, 0),
+	# 	(False, PINSIZE),
+
+	# 	(True,  0),
+	# 	(True, PINSIZE),
+	# ]
+
+
 	p = Path(f"outlineA{ox}{oy}", False)
 
 	# p.add_node(ox,            oy)				# Corner 1
@@ -140,16 +164,33 @@ def top_bottom_side(ox: int, oy: int) -> Group:
 		(False, 0),
 	]
 
+	points2 = [
+		(False, PINSIZE * 2),
+		(True, 0),
+		(True, PINSIZE),
+		(False, 0),
+
+		(False, PINSIZE),
+		(True, 0),
+		(True, PINSIZE, "A"),
+		(False, 0),
+
+		(False, PINSIZE),
+		# (True, 0),
+		# (True, PINSIZE),
+		# (False, 0),
+	]
+
 	p = Path(f"outlineA{ox}{oy}", False)
 
 	# p.add_node(ox,            oy)				# Corner 1
 	p = create_teeth(outline, p, True, True, ox, oy, points)
 	# p.add_node(ox + DICESIZE, oy)				# Corner 2
-	p = create_teeth(outline, p, False, True, ox + DICESIZE, oy, points)
+	p = create_teeth(outline, p, False, True, ox + DICESIZE, oy, points2)
 	# p.add_node(ox + DICESIZE, oy + DICESIZE)	# Corner 3
 	p = create_teeth(outline, p, True, False, ox + DICESIZE, oy + DICESIZE, points)
 	# p.add_node(ox,            oy + DICESIZE)	# Corner 4
-	p = create_teeth(outline, p, False, False, ox, oy + DICESIZE, points)
+	p = create_teeth(outline, p, False, False, ox, oy + DICESIZE, points2)
 
 	outline.add_path(p)
 	return outline
@@ -274,8 +315,8 @@ def create_it():
 
 	t = Text(offset_x + DICESIZE - 1, offset_y + PLATESIZE_Y - 1, MAGENTA, "Makerslab RSLopPOST")
 	t.fontsize = 4
-	t.color = MAGENTA
-	t.fillcolor = None
+	t.color = None
+	t.fillcolor = RED
 	dice.add_text(t)
 
 
