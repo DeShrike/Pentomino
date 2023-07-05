@@ -67,24 +67,26 @@ SVG_START = """<?xml version="1.0" encoding="UTF-8"?>
    <defs>
       <style type="text/css">
       <![CDATA[
-      .strblack   {stroke:black;  stroke-width:0.1;stroke-miterlimit:4}
-      .strred     {stroke:red;    stroke-width:0.1;stroke-miterlimit:4}
-      .strgreen   {stroke:green;  stroke-width:0.1;stroke-miterlimit:4}
-      .stryellow  {stroke:yellow; stroke-width:0.1;stroke-miterlimit:4}
-      .strblue    {stroke:blue;   stroke-width:0.1;stroke-miterlimit:4}
-      .strmagenta {stroke:magenta;stroke-width:0.1;stroke-miterlimit:4}
-      .strcyan    {stroke:cyan;   stroke-width:0.1;stroke-miterlimit:4}
-      .strwhite   {stroke:white;  stroke-width:0.1;stroke-miterlimit:4}
+      .strblack   {stroke:black;  stroke-width:0.0762;stroke-miterlimit:4}
+      .strred     {stroke:red;    stroke-width:0.0762;stroke-miterlimit:4}
+      .strgreen   {stroke:lime;   stroke-width:0.0762;stroke-miterlimit:4}
+      .stryellow  {stroke:yellow; stroke-width:0.0762;stroke-miterlimit:4}
+      .strblue    {stroke:blue;   stroke-width:0.0762;stroke-miterlimit:4}
+      .strmagenta {stroke:fuchsia;stroke-width:0.0762;stroke-miterlimit:4}
+      .strcyan    {stroke:aqua;   stroke-width:0.0762;stroke-miterlimit:4}
+      .strwhite   {stroke:white;  stroke-width:0.0762;stroke-miterlimit:4}
       .fil0       {fill:none}
       .str0       {stroke:none}
       .filblack   {fill:black}
       .filred     {fill:red}
-      .filgreen   {fill:green}
-      .filyellow  {fill:yallow}
+      .filgreen   {fill:lime}
+      .filyellow  {fill:yellow}
       .filblue    {fill:blue}
-      .filmagenta {fill:magenta}
-      .filcyan    {fill:cyan}
+      .filmagenta {fill:fuchsia}
+      .filcyan    {fill:aqua}
       .filwhite   {fill:white}
+      .textstyle  {font-style:normal;font-weight:normal;line-height:1;font-family:sans-serif;}
+
       ]]>
    </style>
    </defs>
@@ -140,30 +142,30 @@ PATH_XML = """
    <path
       id="{{ID}}"
       class="{{COLORCLASS}}"
-      fill="none" stroke="#{{COLOR}}"
+      x-fill="none" x-stroke="#{{COLOR}}"
       d="{{DATA}}"
       sodipodi:nodetypes="{{NODETYPES}}" />
 """
 
 TEXT_XML = """
    <text xml:space="preserve"
-      class="fil0 {{COLORCLASS}}"
-      style="font-style:normal;font-weight:normal;font-size:{{FONTSIZE}}px;line-height:1;font-family:sans-serif"
+      class="{{COLORCLASS}} textstyle"
+      style="font-size:{{FONTSIZE}}px"
       x="{{X}}" y="{{Y}}"
-      stroke="#{{COLOR}}" fill="#{{FILLCOLOR}}"
+      x-stroke="#{{COLOR}}" x-fill="#{{FILLCOLOR}}"
       id="{{ID}}" {{TRANSFORM}}><tspan
          class="{{COLORCLASS}}"
          sodipodi:role="line"
          id="{{ID}}"
          x="{{X}}"
          y="{{Y}}"
-         style="stroke-width:0.1">{{TEXT}}</tspan></text>
+         x-style="stroke-width:7.62">{{TEXT}}</tspan></text>
 """
 
 ELLIPSE_XML = """
    <ellipse
       class="{{COLORCLASS}}"
-      fill="#{{FILLCOLOR}}" stroke="#{{COLOR}}"
+      x-fill="#{{FILLCOLOR}}" x-stroke="#{{COLOR}}"
       id="{{ID}}"
       cx="{{X}}"
       cy="{{Y}}"
