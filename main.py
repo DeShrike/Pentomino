@@ -6,324 +6,379 @@ from svg.group import Group
 from svg.path import Path
 from svg.text import Text
 from svg.ellipse import Ellipse
-from svg.helpers import create_rounded_box, save, distance
+from svg.helpers import create_rounded_box, save, add_rounded_corner
 from config import *
 
 offset_x = 5
 offset_y = 5
 
-def create_teeth(g: Group, p: Path, horizontal: bool, forward: bool, x: int, y: int, data) -> Path:
-	state = True
-	attach_added = False
-	pd = PINDEPTH if forward else -PINDEPTH
-	for d in data:
-		add_attach = (len(d) == 3)
-		r = d[0]
-		s = d[1] if forward else -d[1]
-		ys = (pd if state != r else 0)
-		ys = ys if state else -ys
-		if horizontal:
-			if add_attach and attach_added == False:
-				attach_added = True
-				ox = x + s
-				x += s / 2
-				x = x + ((ATTACH_WIDTH / 2) * (-1 if forward else 1))
-				p.add_node(x, y)
-				g.add_path(p)
+x_squares = 10
+y_squares = 6
 
-				y = p.last_y()
+def add_hline(x1: int, y1: int, x2: int, y2: int, cut: bool) -> Path:
+   p = Path(f"line_{x1}_{y1}_{x2}_{y2}", False)
+   p.color = BLACK if cut else CYAN
+   xx1 = offset_x + (x1 * SQUARE_SIZE) + LEFT_BORDER + CORNER_RADIUS
+   yy1 = offset_y + (y1 * SQUARE_SIZE) + TOP_BORDER
+   xx2 = offset_x + (x2 * SQUARE_SIZE) + LEFT_BORDER - CORNER_RADIUS
+   yy2 = offset_y + (y2 * SQUARE_SIZE) + TOP_BORDER
+   p.add_node(xx1, yy1)
+   p.add_node(xx2, yy2)
+   return p
 
-				p = Path(p.id + "ATT", False)
-				p.add_node(x, y)
+def add_vline(x1: int, y1: int, x2: int, y2: int, cut: bool) -> Path:
+   p = Path(f"line_{x1}_{y1}_{x2}_{y2}", False)
+   p.color = BLACK if cut else CYAN
+   xx1 = offset_x + (x1 * SQUARE_SIZE) + LEFT_BORDER
+   yy1 = offset_y + (y1 * SQUARE_SIZE) + TOP_BORDER + CORNER_RADIUS
+   xx2 = offset_x + (x2 * SQUARE_SIZE) + LEFT_BORDER
+   yy2 = offset_y + (y2 * SQUARE_SIZE) + TOP_BORDER - CORNER_RADIUS
+   p.add_node(xx1, yy1)
+   p.add_node(xx2, yy2)
+   return p
 
-				x = x + ((ATTACH_WIDTH) * (1 if forward else -1))
-				p.add_node(x, y)
-				p.color = MAGENTA
-				g.add_path(p)
+def add_corners(x: int, y: int, sides: str) -> Path:
+   # sides: 1 = BR, 2 = BL, 3 = TR, 4 = TL
 
-				p = Path(p.id + "X", False)
-				p.add_node(x, y)
-				x = ox
-			else:	
-				x += s
-			y = y + ys
-		else:
-			y += s
-			x = x + -ys
-		state = r
+   p = Path(f"corners_{x}_{y}_{sides}", False)
+   p.color = BLACK
+   
+   xx = offset_x + (x * SQUARE_SIZE) + LEFT_BORDER
+   yy = offset_y + (y * SQUARE_SIZE) + TOP_BORDER
+   
+   for side in sides:
+      if side == "1":
+         add_rounded_corner(p, xx, yy, CORNER_RADIUS, "TL")
+      if side == "2":
+         add_rounded_corner(p, xx, yy, CORNER_RADIUS, "TR")
+      if side == "3":
+         add_rounded_corner(p, xx, yy, CORNER_RADIUS, "BR")
+      if side == "4":
+         add_rounded_corner(p, xx, yy, CORNER_RADIUS, "BL")
 
-		p.add_node(x, y)
-	return p
+   return p
+      
 
-def left_right_side(ox: int, oy: int) -> Group:
-	outline = Group(f"OutlineLeftRight{ox}{oy}")
+def create_box(layer):
+   box_group = Group(f"box")
+   layer.groups.append(box_group)
 
-	points = [
-		(True, 0), 
-		(True, PINSIZE),
-		(True, PINSIZE),
+   outer_width = RIGHT_BORDER + LEFT_BORDER + (x_squares * SQUARE_SIZE)
+   outer_height = TOP_BORDER + BOTTOM_BORDER + (y_squares * SQUARE_SIZE)
 
-		(False, 0),
-		(False, PINSIZE - TIGHTSIZE),
+   p = create_rounded_box(0, 0, outer_width, outer_height, BIG_CORNER_RADIUS, RED)
+   p.move((offset_x, offset_y))
 
-		(True,  0),
-		(True, PINSIZE + TIGHTSIZE + TIGHTSIZE, "A"),
+   box_group.paths.append(p)
 
-		(False, 0),
-		(False, PINSIZE - TIGHTSIZE),
+   inner_width = (x_squares * SQUARE_SIZE)
+   inner_height = (y_squares * SQUARE_SIZE)
 
-		(True,  0),
-		(True, PINSIZE),
-	]
+   p = create_rounded_box(LEFT_BORDER, TOP_BORDER, inner_width, inner_height, CORNER_RADIUS, RED)
+   p.move((offset_x, offset_y))
 
-	# points2 = [
-	# 	(True, 0), 
-	# 	(True, PINSIZE),
+   box_group.paths.append(p)
 
-	# 	(False, 0),
-	# 	(False, PINSIZE),
+   text_x = LEFT_BORDER + (y_squares * SQUARE_SIZE) / 2
+   text_y = TOP_BORDER + (y_squares * SQUARE_SIZE) + TOP_BORDER
 
-	# 	(True,  0),
-	# 	(True, PINSIZE, "A"),
-
-	# 	(False, 0),
-	# 	(False, PINSIZE),
-
-	# 	(True,  0),
-	# 	(True, PINSIZE),
-
-	# 	(False, 0),
-	# 	(False, PINSIZE),
-
-	# 	(True,  0),
-	# 	(True, PINSIZE),
-	# ]
+   t = Text(offset_x + text_x, offset_y + text_y, MAGENTA, "Makerslab RSLopPOST")
+   t.fontsize = 4
+   t.color = None
+   t.fillcolor = BLUE
+   box_group.add_text(t)
 
 
-	p = Path(f"outlineA{ox}{oy}", False)
+def create_bottom(layer):
+   bottom_group = Group(f"bottom")
+   layer.groups.append(bottom_group)
 
-	# p.add_node(ox,            oy)				# Corner 1
-	p = create_teeth(outline, p, True, True, ox, oy, points)
-	# p.add_node(ox + DICESIZE, oy)				# Corner 2
-	p = create_teeth(outline, p, False, True, ox + DICESIZE, oy, points)
-	# p.add_node(ox + DICESIZE, oy + DICESIZE)	# Corner 3
-	p = create_teeth(outline, p, True, False, ox + DICESIZE, oy + DICESIZE, points)
-	# p.add_node(ox,            oy + DICESIZE)	# Corner 4
-	p = create_teeth(outline, p, False, False, ox, oy + DICESIZE, points)
-	p.add_node(ox,            oy)				# Close to Corner 1
+   bottom_width = RIGHT_BORDER + LEFT_BORDER + (x_squares * SQUARE_SIZE)
+   bottom_height = TOP_BORDER + BOTTOM_BORDER + (y_squares * SQUARE_SIZE)
 
-	outline.add_path(p)
-	return outline
+   p = create_rounded_box(0, 0, bottom_width, bottom_height, BIG_CORNER_RADIUS, RED)
+   p.move((offset_x, offset_y + bottom_height + 10))
 
-def front_back_side(ox: int, oy: int) -> Group:
-	outline = Group(f"OutlineFrontBack{ox}{oy}")
-
-	points = [
-		(False, PINSIZE), 
-		(False, PINSIZE), 
-	
-		(True, 0),
-		(True, PINSIZE + TIGHTSIZE, "A"),
-
-		(False, 0),
-		(False, PINSIZE - TIGHTSIZE - TIGHTSIZE), 
-
-		(True, 0),
-		(True, PINSIZE, "A"),
-
-		(False, 0),
-		(False, PINSIZE), 
-	]
-
-	p = Path(f"outlineA{ox}{oy}", False)
-
-	# p.add_node(ox,            oy)				# Corner 1
-	p = create_teeth(outline, p, True, True, ox, oy, points)
-	# p.add_node(ox + DICESIZE, oy)				# Corner 2
-	p = create_teeth(outline, p, False, True, ox + DICESIZE, oy, points)
-	# p.add_node(ox + DICESIZE, oy + DICESIZE)	# Corner 3
-	p = create_teeth(outline, p, True, False, ox + DICESIZE, oy + DICESIZE, points)
-	# p.add_node(ox,            oy + DICESIZE)	# Corner 4
-	p = create_teeth(outline, p, False, False, ox, oy + DICESIZE, points)
-
-	outline.add_path(p)
-	return outline
+   bottom_group.paths.append(p)
 
 
-def top_bottom_side(ox: int, oy: int) -> Group:
-	outline = Group(f"OutlineTopBottom{ox}{oy}")
+def create_pentominos(layer):
+   pentomino_group = Group(f"pentominos")
+   layer.groups.append(pentomino_group)
 
-	points = [
-		(False, PINSIZE),
-		(True, 0),
-		(True, PINSIZE + TIGHTSIZE),
-		(False, 0),
+   # Top row
+   for x in range(1, 10):
+      c = add_corners(x, 0, "21")
+      pentomino_group.paths.append(c)
+   
+   for y in range(1, 6):
+      for x in range(1, 10):
+         if x == 2 and y == 1:
+            continue
+         c = add_corners(x, y, "4321")
+         pentomino_group.paths.append(c)
 
-		(False, PINSIZE - TIGHTSIZE),
-		(True, 0),
-		(True, PINSIZE + TIGHTSIZE, "A"),
-		(False, 0),
+   # Bottom row
+   for x in range(1, 10):
+      c = add_corners(x, 6, "43")
+      pentomino_group.paths.append(c)
 
-		(False, PINSIZE - TIGHTSIZE),
-		(True, 0),
-		(True, PINSIZE),
-		(False, 0),
-	]
+   # Left column
+   for y in range(1, 6):
+      c = add_corners(0, y, "14")
+      pentomino_group.paths.append(c)
 
-	points2 = [
-		(False, PINSIZE * 2),
-		(True, 0),
-		(True, PINSIZE + TIGHTSIZE),
-		(False, 0),
+   # Right column
+   for y in range(1, 6):
+      c = add_corners(10, y, "32")
+      pentomino_group.paths.append(c)
 
-		(False, PINSIZE - TIGHTSIZE),
-		(True, 0),
-		(True, PINSIZE, "A"),
-		(False, 0),
+   lines_group = Group(f"lines")
+   layer.groups.append(lines_group)
 
-		(False, PINSIZE),
-	]
+   # Vertical lines
+   x = 1
+   l = add_vline(x, 0, x, 1, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 1, x, 2, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 2, x, 3, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 3, x, 4, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 4, x, 5, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 5, x, 6, False)
+   lines_group.paths.append(l)
 
-	p = Path(f"outlineA{ox}{oy}", False)
+   x = 2
+   l = add_vline(x, 0, x, 2, False)
+   lines_group.paths.append(l)
+   l = add_vline(x, 2, x, 3, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 3, x, 4, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 4, x, 5, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 5, x, 6, False)
+   lines_group.paths.append(l)
 
-	# p.add_node(ox,            oy)				# Corner 1
-	p = create_teeth(outline, p, True, True, ox, oy, points)
-	# p.add_node(ox + DICESIZE, oy)				# Corner 2
-	p = create_teeth(outline, p, False, True, ox + DICESIZE, oy, points2)
-	# p.add_node(ox + DICESIZE, oy + DICESIZE)	# Corner 3
-	p = create_teeth(outline, p, True, False, ox + DICESIZE, oy + DICESIZE, points)
-	# p.add_node(ox,            oy + DICESIZE)	# Corner 4
-	p = create_teeth(outline, p, False, False, ox, oy + DICESIZE, points2)
+   x = 3
+   l = add_vline(x, 0, x, 1, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 1, x, 2, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 2, x, 3, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 3, x, 4, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 4, x, 5, False)
+   lines_group.paths.append(l)
+   l = add_vline(x, 5, x, 6, True)
+   lines_group.paths.append(l)
 
-	outline.add_path(p)
-	return outline
+   x = 4
+   l = add_vline(x, 0, x, 1, False)
+   lines_group.paths.append(l)
+   l = add_vline(x, 1, x, 2, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 2, x, 3, False)
+   lines_group.paths.append(l)
+   l = add_vline(x, 3, x, 4, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 4, x, 5, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 5, x, 6, False)
+   lines_group.paths.append(l)
 
-def create_side(g: Group, x: int, y: int):
-	side = Group(f"SIDE{x}{y}")
+   x = 5
+   l = add_vline(x, 0, x, 1, False)
+   lines_group.paths.append(l)
+   l = add_vline(x, 1, x, 2, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 2, x, 3, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 3, x, 4, False)
+   lines_group.paths.append(l)
+   l = add_vline(x, 4, x, 5, False)
+   lines_group.paths.append(l)
+   l = add_vline(x, 5, x, 6, True)
+   lines_group.paths.append(l)
 
-	ix = y * 3 + x + 1
+   x = 6
+   l = add_vline(x, 0, x, 1, False)
+   lines_group.paths.append(l)
+   l = add_vline(x, 1, x, 2, False)
+   lines_group.paths.append(l)
+   l = add_vline(x, 2, x, 3, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 3, x, 4, False)
+   lines_group.paths.append(l)
+   l = add_vline(x, 4, x, 5, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 5, x, 6, False)
+   lines_group.paths.append(l)
 
-	o_x = GUTTER + (x * GUTTER) + (x * DICESIZE)
-	o_y = GUTTER + (y * GUTTER) + (y * DICESIZE)
+   x = 7
+   l = add_vline(x, 0, x, 1, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 1, x, 2, False)
+   lines_group.paths.append(l)
+   l = add_vline(x, 2, x, 3, False)
+   lines_group.paths.append(l)
+   l = add_vline(x, 3, x, 4, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 4, x, 5, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 5, x, 6, False)
+   lines_group.paths.append(l)
 
-	outline = None
-	if ix == 1 or ix == 6:
-		outline = top_bottom_side(o_x, o_y)
-	elif ix == 2 or ix == 5:
-		outline = left_right_side(o_x, o_y) 
-	elif ix == 3 or ix == 4:
-		outline = front_back_side(o_x, o_y) 
+   x = 8
+   l = add_vline(x, 0, x, 1, False)
+   lines_group.paths.append(l)
+   l = add_vline(x, 1, x, 2, False)
+   lines_group.paths.append(l)
+   l = add_vline(x, 2, x, 3, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 3, x, 4, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 4, x, 5, False)
+   lines_group.paths.append(l)
+   l = add_vline(x, 5, x, 6, True)
+   lines_group.paths.append(l)
 
-	for p in outline.paths:
-		p.move((offset_x, offset_y))
+   x = 9
+   l = add_vline(x, 0, x, 1, False)
+   lines_group.paths.append(l)
+   l = add_vline(x, 1, x, 2, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 2, x, 3, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 3, x, 4, False)
+   lines_group.paths.append(l)
+   l = add_vline(x, 4, x, 5, True)
+   lines_group.paths.append(l)
+   l = add_vline(x, 5, x, 6, False)
+   lines_group.paths.append(l)
 
-	side.add_group(outline)
+   # Horizontal lines
+   y = 1
+   l = add_hline(0, y, 1, y, False)
+   lines_group.paths.append(l)
+   l = add_hline(1, y, 3, y, False)
+   lines_group.paths.append(l)
+   l = add_hline(3, y, 4, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(4, y, 5, y, False)
+   lines_group.paths.append(l)
+   l = add_hline(5, y, 6, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(6, y, 7, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(7, y, 8, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(8, y, 9, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(9, y, 10, y, False)
+   lines_group.paths.append(l)
 
-	if ix == 1 or ix == 3 or ix == 5:
-		pos_x = o_x + DICESIZE / 2
-		pos_y = o_y + DICESIZE / 2
-		e = Ellipse(pos_x, pos_y, DOTRADIUS, RED)
-		e.fillcolor = RED
-		e.color = None
-		e.move((offset_x, offset_y))
-		side.add_ellipse(e)
+   y = 2
+   l = add_hline(0, y, 1, y, False)
+   lines_group.paths.append(l)
+   l = add_hline(1, y, 2, y, False)
+   lines_group.paths.append(l)
+   l = add_hline(2, y, 3, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(3, y, 4, y, False)
+   lines_group.paths.append(l)
+   l = add_hline(4, y, 5, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(5, y, 6, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(6, y, 7, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(7, y, 8, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(8, y, 9, y, False)
+   lines_group.paths.append(l)
+   l = add_hline(9, y, 10, y, False)
+   lines_group.paths.append(l)
 
-	if ix == 2 or ix == 3 or ix == 5 or ix == 4 or ix == 6:
-		pos_x = o_x + DICESIZE / 2 - (DOTRADIUS * 2)
-		pos_y = o_y + DICESIZE / 2 - (DOTRADIUS * 2)
-		if ix == 6:
-			pos_x -= 1
-		e = Ellipse(pos_x, pos_y, DOTRADIUS, RED)
-		e.fillcolor = RED
-		e.color = None
-		e.move((offset_x, offset_y))
-		side.add_ellipse(e)
+   y = 3
+   l = add_hline(0, y, 1, y, False)
+   lines_group.paths.append(l)
+   l = add_hline(1, y, 2, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(2, y, 3, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(3, y, 4, y, False)
+   lines_group.paths.append(l)
+   l = add_hline(4, y, 5, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(5, y, 6, y, False)
+   lines_group.paths.append(l)
+   l = add_hline(6, y, 7, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(7, y, 8, y, False)
+   lines_group.paths.append(l)
+   l = add_hline(8, y, 9, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(9, y, 10, y, True)
+   lines_group.paths.append(l)
 
-		pos_x = o_x + DICESIZE / 2 + (DOTRADIUS * 2)
-		pos_y = o_y + DICESIZE / 2 + (DOTRADIUS * 2)
-		if ix == 6:
-			pos_x += 1
-		e = Ellipse(pos_x, pos_y, DOTRADIUS, RED)
-		e.fillcolor = RED
-		e.color = None
-		e.move((offset_x, offset_y))
-		side.add_ellipse(e)
+   y = 4
+   l = add_hline(0, y, 1, y, False)
+   lines_group.paths.append(l)
+   l = add_hline(1, y, 2, y, False)
+   lines_group.paths.append(l)
+   l = add_hline(2, y, 3, y, False)
+   lines_group.paths.append(l)
+   l = add_hline(3, y, 4, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(4, y, 5, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(5, y, 6, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(6, y, 7, y, False)
+   lines_group.paths.append(l)
+   l = add_hline(7, y, 8, y, False)
+   lines_group.paths.append(l)
+   l = add_hline(8, y, 9, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(9, y, 10, y, False)
+   lines_group.paths.append(l)
 
-	if ix == 4 or ix == 5 or ix == 6:
-		pos_x = o_x + DICESIZE / 2 + (DOTRADIUS * 2)
-		pos_y = o_y + DICESIZE / 2 - (DOTRADIUS * 2)
-		if ix == 6:
-			pos_x += 1
-		e = Ellipse(pos_x, pos_y, DOTRADIUS, RED)
-		e.fillcolor = RED
-		e.color = None
-		e.move((offset_x, offset_y))
-		side.add_ellipse(e)
-
-		pos_x = o_x + DICESIZE / 2 - (DOTRADIUS * 2)
-		pos_y = o_y + DICESIZE / 2 + (DOTRADIUS * 2)
-		if ix == 6:
-			pos_x -= 1
-		e = Ellipse(pos_x, pos_y, DOTRADIUS, RED)
-		e.fillcolor = RED
-		e.color = None
-		e.move((offset_x, offset_y))
-		side.add_ellipse(e)
-
-	if ix == 6:
-		pos_x = o_x + DICESIZE / 2
-		pos_y = o_y + DICESIZE / 2 - (DOTRADIUS * 2)
-		e = Ellipse(pos_x, pos_y, DOTRADIUS, RED)
-		e.fillcolor = RED
-		e.color = None
-		e.move((offset_x, offset_y))
-		side.add_ellipse(e)
-
-		pos_x = o_x + DICESIZE / 2
-		pos_y = o_y + DICESIZE / 2 + (DOTRADIUS * 2)
-		e = Ellipse(pos_x, pos_y, DOTRADIUS, RED)
-		e.fillcolor = RED
-		e.color = None
-		e.move((offset_x, offset_y))
-		side.add_ellipse(e)
-
-	if ix == 1 or ix == 4:
-		for e in side.ellipses:
-			e.color = None
-			e.fillcolor = RED
-	elif ix == 2 or ix == 5:
-		for e in side.ellipses:
-			e.color = None
-			e.fillcolor = GREEN
-	elif ix == 3 or ix == 6:
-		for e in side.ellipses:
-			e.color = None
-			e.fillcolor = BLUE
-
-	g.add_group(side)
+   y = 5
+   l = add_hline(0, y, 1, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(1, y, 2, y, False)
+   lines_group.paths.append(l)
+   l = add_hline(2, y, 3, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(3, y, 4, y, False)
+   lines_group.paths.append(l)
+   l = add_hline(4, y, 5, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(5, y, 6, y, False)
+   lines_group.paths.append(l)
+   l = add_hline(6, y, 7, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(7, y, 8, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(8, y, 9, y, True)
+   lines_group.paths.append(l)
+   l = add_hline(9, y, 10, y, False)
+   lines_group.paths.append(l)
 
 def create_it():
-	plate = Layer("Plate")
+   plate = Layer("Plate")
 
-	dice = Group(f"dice")
-	plate.groups.append(dice)
-
-	p = create_rounded_box(0, 0, PLATESIZE_X, PLATESIZE_Y, 5, CYAN)
-	p.move((offset_x, offset_y))
-
-	plate.paths.append(p)
-
-	for x, y in itertools.product(range(3), range(2)):
-		create_side(dice, x, y)
-
-	t = Text(offset_x + DICESIZE - 1, offset_y + PLATESIZE_Y - 1, MAGENTA, "Makerslab RSLopPOST")
-	t.fontsize = 4
-	t.color = None
-	t.fillcolor = RED
-	dice.add_text(t)
+   create_box(plate)
+   create_pentominos(plate)
+   create_bottom(plate)
 
 
-	save(plate, os.path.join(OUTPUT_FOLDER, "dice.svg"), "DICE", PAPER_WIDTH, PAPER_HEIGHT)
+   save(plate, os.path.join(OUTPUT_FOLDER, "pentomino.svg"), "PENTOMINO", PAPER_WIDTH, PAPER_HEIGHT)
 
 
 # def add_r(g: Group):
@@ -337,7 +392,7 @@ def create_it():
 
 
 def main():
-	create_it()
+   create_it()
 
 if __name__ == "__main__":
-	main()
+   main()
