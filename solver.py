@@ -3,7 +3,7 @@
 WIDTH = 10
 HEIGHT = 6
 
-MAX_ROTATIONS = [2, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0]
+MAX_ROTATIONS = [2, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1]
 
 PENTOS = [
    [
@@ -75,6 +75,7 @@ BEIGE = "\033[96m"
 WHITE = "\033[97m"
 
 HOME = "\033[1;1f"
+CLS = "\033[2J"
 
 SHOW = "\033[?25h"
 HIDE = "\033[?25l"
@@ -110,21 +111,20 @@ class Pento():
 
    def next_rotation(self) -> bool:
       self.rotate()
-      return self.rotation >= self.max_rotations
+      return self.rotation < self.max_rotations
 
 class Solver():
    def __init__(self, w: int, h: int):
       self.width = w
       self.height = h
       self.grid = [[0 for _ in range(self.width)] for _ in range(self.height)]
-      self.next_ix = 0
       self.stack = []
-      self.advances = 0
       self.pentos = [Pento(p, mr) for p, mr in zip(PENTOS, MAX_ROTATIONS)]
-   
+      self.to_try = []
+      self.last_popped_id = -1
+
    def print(self) -> None:
-      print(HIDE, end="")
-      print(HOME, end="")
+      # print(HIDE, end="")
       print("-" * self.width * 4)
       for y in range(self.height):
          for x in range(self.width):
@@ -132,28 +132,10 @@ class Solver():
             print(f"{self.grid[y][x]:3} ", end="")
             print(RESET, end="")
          print("")
-      print(SHOW, end="")
-
-   def advance(self) -> None:
-      self.next_ix = (self.next_ix + 1) % len(self.pentos)
-      self.advances += 1
+      #print(SHOW, end="")
 
    def iscomplete(self) -> bool:
       return all( [all( [x != 0 for x in row]) for row in self.grid])
-
-   def next_piece(self) -> Pento:
-      while True:
-         p = self.pentos[self.next_ix]
-         if p.placed:
-            self.advance()
-            continue
-
-         if p.next_rotation():
-            p.reset()
-            self.advance()
-            continue
-
-         return p
 
    def try_place_at(self, p: Pento, x: int, y: int) -> bool:
       # print(f"Try place #{p.id} (Size=({p.width}x{p.height})) at ({x},{y}) with rotations {p.rotation}")
@@ -179,38 +161,75 @@ class Solver():
             if self.try_place_at(p, x, y):
                return True
       return False
-      
+
+   def next_piece(self) -> Pento:
+      while True:
+         p = self.to_try[-1]
+         if not p.next_rotation():
+            self.to_try.pop()
+            if len(self.to_try) == 0:
+               return None
+            continue
+
+         return p
+
+   def init_step(self) -> None:
+      self.to_try = [p for p in self.pentos if p.placed == False and p.id != self.last_popped_id]
+      if self.last_popped_id != -1:
+         self.to_try.append(self.pentos[self.last_popped_id - 1])
+      print("Resetting: ", end="")
+      for p in self.to_try:
+         if p.id != self.last_popped_id:
+            print(f"{p.id} ", end="")
+            p.reset()
+         else:
+            print(RED + f"{p.id} " + RESET, end="")
+      print("")
+      self.last_popped_id = -1
+
    def dostep(self) -> bool:
-      self.advances = 0
+      print(CLS + HOME, end="")
+
+      self.init_step()
+
+      print("Trying: ", end="")
       while True:
          p = self.next_piece()
+         if p is None:
+            return False
+
+         print(f"#{p.id}({p.rotation}) ", end="")
          if self.try_place(p):
             self.stack.append(p)
+            print("Ok")
             return True
-         else:
-            if self.advances >= 12:
-               return False
-            continue
+      print("")
 
    def remove_block(self, id: int) -> None:
       for y in range(self.height):
          for x in range(self.width):
             self.grid[y][x] = 0 if self.grid[y][x] == id else self.grid[y][x]
 
+   def show_stack(self, ret: bool) -> None:
+      print(f"Stack: Len = {len(self.stack)}   ", end="")
+      for s in self.stack:
+         print(f"{s.id}({s.rotation}) ", end="")
+      print(f"  {ret}")
+
    def run(self):
       while (True):
          ret = self.dostep()
          self.print()
-         print(f"Stack size: {len(self.stack)}   {ret}")
-         for s in self.stack:
-            print(s)
-         #a = input()
+         self.show_stack(ret)
          if self.iscomplete():
             print("Found One")
          if not ret:
             last = self.stack.pop()
             last.placed = False
+            print(f"Popped: #{last.id}")
+            self.last_popped_id = last.id
             self.remove_block(last.id)
+            self.show_stack(ret)
             """
             while True:
                last = self.stack.pop()
@@ -223,6 +242,7 @@ class Solver():
                else:
                   break
             """
+         a = input()
 
 if __name__ == "__main__":
    s = Solver(WIDTH, HEIGHT)
