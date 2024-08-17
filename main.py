@@ -17,7 +17,7 @@ y_squares = 6
 
 def add_hline(x1: int, y1: int, x2: int, y2: int, cut: bool) -> Path:
    p = Path(f"line_{x1}_{y1}_{x2}_{y2}", False)
-   p.color = BLACK if cut else CYAN
+   p.color = GREEN if cut else BLACK
    xx1 = offset_x + (x1 * SQUARE_SIZE) + LEFT_BORDER + CORNER_RADIUS
    yy1 = offset_y + (y1 * SQUARE_SIZE) + TOP_BORDER
    xx2 = offset_x + (x2 * SQUARE_SIZE) + LEFT_BORDER - CORNER_RADIUS
@@ -28,7 +28,7 @@ def add_hline(x1: int, y1: int, x2: int, y2: int, cut: bool) -> Path:
 
 def add_vline(x1: int, y1: int, x2: int, y2: int, cut: bool) -> Path:
    p = Path(f"line_{x1}_{y1}_{x2}_{y2}", False)
-   p.color = BLACK if cut else CYAN
+   p.color = GREEN if cut else BLACK
    xx1 = offset_x + (x1 * SQUARE_SIZE) + LEFT_BORDER
    yy1 = offset_y + (y1 * SQUARE_SIZE) + TOP_BORDER + CORNER_RADIUS
    xx2 = offset_x + (x2 * SQUARE_SIZE) + LEFT_BORDER
@@ -41,7 +41,7 @@ def add_corners(x: int, y: int, sides: str) -> Path:
    # sides: 1 = BR, 2 = BL, 3 = TR, 4 = TL
 
    p = Path(f"corners_{x}_{y}_{sides}", False)
-   p.color = BLACK
+   p.color = RED
    
    xx = offset_x + (x * SQUARE_SIZE) + LEFT_BORDER
    yy = offset_y + (y * SQUARE_SIZE) + TOP_BORDER
@@ -66,7 +66,7 @@ def create_box(layer):
    outer_width = RIGHT_BORDER + LEFT_BORDER + (x_squares * SQUARE_SIZE)
    outer_height = TOP_BORDER + BOTTOM_BORDER + (y_squares * SQUARE_SIZE)
 
-   p = create_rounded_box(0, 0, outer_width, outer_height, BIG_CORNER_RADIUS, RED)
+   p = create_rounded_box(0, 0, outer_width, outer_height, BIG_CORNER_RADIUS, BLUE)
    p.move((offset_x, offset_y))
 
    box_group.paths.append(p)
@@ -74,7 +74,7 @@ def create_box(layer):
    inner_width = (x_squares * SQUARE_SIZE)
    inner_height = (y_squares * SQUARE_SIZE)
 
-   p = create_rounded_box(LEFT_BORDER, TOP_BORDER, inner_width, inner_height, CORNER_RADIUS, RED)
+   p = create_rounded_box(LEFT_BORDER, TOP_BORDER, inner_width, inner_height, CORNER_RADIUS, YELLOW)
    p.move((offset_x, offset_y))
 
    box_group.paths.append(p)
@@ -85,7 +85,7 @@ def create_box(layer):
    t = Text(offset_x + text_x, offset_y + text_y, MAGENTA, "Makerslab RSLopPOST")
    t.fontsize = 4
    t.color = None
-   t.fillcolor = BLUE
+   t.fillcolor = MAGENTA
    box_group.add_text(t)
 
 
@@ -96,7 +96,7 @@ def create_bottom(layer):
    bottom_width = RIGHT_BORDER + LEFT_BORDER + (x_squares * SQUARE_SIZE)
    bottom_height = TOP_BORDER + BOTTOM_BORDER + (y_squares * SQUARE_SIZE)
 
-   p = create_rounded_box(0, 0, bottom_width, bottom_height, BIG_CORNER_RADIUS, RED)
+   p = create_rounded_box(0, 0, bottom_width, bottom_height, BIG_CORNER_RADIUS, BLUE)
    p.move((offset_x, offset_y + bottom_height + 10))
 
    bottom_group.paths.append(p)
@@ -168,7 +168,7 @@ def create_pentominos(layer):
    lines_group.paths.append(l)
    l = add_vline(x, 1, x, 2, True)
    lines_group.paths.append(l)
-   l = add_vline(x, 2, x, 3, True)
+   l = add_vline(x, 2, x, 3, False)
    lines_group.paths.append(l)
    l = add_vline(x, 3, x, 4, True)
    lines_group.paths.append(l)
