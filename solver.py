@@ -84,7 +84,8 @@ COLORS = [DIM, RED, GREEN, YELLOW, BLUE, VIOLET, BEIGE, WHITE, RED, GREEN, YELLO
 
 class Pento():
    def __init__(self, pento, max_rot: int) -> None:
-      self.grid = pento
+      self.grid = [row[:] for row in pento]
+      self.orig_grid = [row[:] for row in pento]
       self.max_rotations = max_rot
       self.reset()
       self.width = len(self.grid[0])
@@ -108,27 +109,36 @@ class Pento():
       self.x = -1
       self.y = -1
       self.placed = False
+      self.grid = [row[:] for row in self.orig_grid]
 
    def next_rotation(self) -> bool:
       self.rotate()
-      return self.rotation < self.max_rotations
+      if self.rotation >= self.max_rotations:
+         #print(f" #{self.id} R {self.rotation} >= {self.max_rotations}")
+         #a = input()
+         self.reset()
+         return False
+      return True
 
 class Solver():
    def __init__(self, w: int, h: int):
       self.width = w
       self.height = h
       self.grid = [[0 for _ in range(self.width)] for _ in range(self.height)]
+      self.floodfill_grid = None
       self.stack = []
       self.pentos = [Pento(p, mr) for p, mr in zip(PENTOS, MAX_ROTATIONS)]
-      self.to_try = []
+      self.next_ix = 0
       self.last_popped_id = -1
+      self.advances = 0
 
    def print(self) -> None:
       # print(HIDE, end="")
       print("-" * self.width * 4)
       for y in range(self.height):
          for x in range(self.width):
-            print(COLORS[self.grid[y][x]], end="")
+            ix = self.grid[y][x]
+            print(COLORS[ix], end="")
             print(f"{self.grid[y][x]:3} ", end="")
             print(RESET, end="")
          print("")
@@ -137,12 +147,54 @@ class Solver():
    def iscomplete(self) -> bool:
       return all( [all( [x != 0 for x in row]) for row in self.grid])
 
+   def ff_neighbours(self, x: int, y: int):
+      nn = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+      for n in nn:
+         xx = x + n[0]
+         yy = y + n[1]
+         if xx < 0 or yy < 0 or xx >= self.width or yy >= self.height:
+            continue
+         yield (xx, yy)
+         
+   def do_floodfill(self, x: int, y: int) -> int:
+      stak = [(x, y)]
+      points = [(x, y)]
+      self.floodfill_grid[y][x] = 100
+      while len(stak) > 0:
+         s = stak.pop()
+         for n in self.ff_neighbours(s[0], s[1]):
+            if self.floodfill_grid[n[1]][n[0]] == 0:
+               self.floodfill_grid[n[1]][n[0]] = 100
+               points.append(n)
+               stak.append(n)
+               
+      return len(points)
+
+   def check_floodfill(self, p: Pento, x: int, y: int) -> bool:
+      self.floodfill_grid = [row[:] for row in self.grid]
+      for yy in range(p.height):
+         for xx in range(p.width):
+            if self.floodfill_grid[yy][xx] > 0:
+               self.floodfill_grid[y + yy][x + xx] = p.grid[yy][xx]
+
+      for yy in range(self.height):
+         for xx in range(self.width):
+            if self.floodfill_grid[yy][xx] == 0:
+               count = self.do_floodfill(xx, yy)
+               if count % 5 != 0:
+                  return False
+
+      return True
+
    def try_place_at(self, p: Pento, x: int, y: int) -> bool:
       # print(f"Try place #{p.id} (Size=({p.width}x{p.height})) at ({x},{y}) with rotations {p.rotation}")
       for yy in range(p.height):
          for xx in range(p.width):
             if self.grid[y + yy][x + xx] > 0 and p.grid[yy][xx] > 0:
                return False
+
+      if not self.check_floodfill(p, x, y):
+         return False
 
       # print("Placing")
       p.placed = True
@@ -162,29 +214,49 @@ class Solver():
                return True
       return False
 
+   def advance(self):
+      self.next_ix = (self.next_ix + 1) % len(self.pentos)
+      self.advances += 1
+
    def next_piece(self) -> Pento:
       while True:
-         p = self.to_try[-1]
+         p = self.pentos[self.next_ix]
+         if p.placed:
+            self.advance()
+            if self.advances > 12:
+               self.advances = 0
+               return None
+            continue
          if not p.next_rotation():
-            self.to_try.pop()
-            if len(self.to_try) == 0:
+            self.advance()
+            if self.advances > 12:
+               self.advances = 0
                return None
             continue
 
          return p
 
-   def init_step(self) -> None:
-      self.to_try = [p for p in self.pentos if p.placed == False and p.id != self.last_popped_id]
-      if self.last_popped_id != -1:
-         self.to_try.append(self.pentos[self.last_popped_id - 1])
-      print("Resetting: ", end="")
-      for p in self.to_try:
-         if p.id != self.last_popped_id:
-            print(f"{p.id} ", end="")
-            p.reset()
+   def show_status(self) -> None:
+      for p in self.pentos:
+         if p.id != self.last_popped_id and p.placed == False:
+            print(RED + f"{p.id:2} " + RESET, end="")
+         elif p.placed:
+            print(GREEN + f"{p.id:2} " + RESET, end="")
          else:
-            print(RED + f"{p.id} " + RESET, end="")
+            print(WHITE + f"{p.id:2} " + RESET, end="")
       print("")
+      for p in self.pentos:
+         if p.id == self.next_ix + 1:
+            print(RED + f" ^ " + RESET, end="")
+         else:
+            print(WHITE + f"   " + RESET, end="")
+      print("")
+
+   def init_step(self) -> None:
+      for p in self.pentos:
+         if p.id != self.last_popped_id and p.placed == False:
+            p.reset()
+      self.show_status()
       self.last_popped_id = -1
 
    def dostep(self) -> bool:
@@ -196,14 +268,20 @@ class Solver():
       while True:
          p = self.next_piece()
          if p is None:
+            print(" NONE")
+            self.show_status()
             return False
 
          print(f"#{p.id}({p.rotation}) ", end="")
          if self.try_place(p):
+            self.advance()
             self.stack.append(p)
             print("Ok")
+            self.show_status()
             return True
-      print("")
+         else:
+            #self.advance()
+            pass
 
    def remove_block(self, id: int) -> None:
       for y in range(self.height):
@@ -226,8 +304,9 @@ class Solver():
          if not ret:
             last = self.stack.pop()
             last.placed = False
-            print(f"Popped: #{last.id}")
+            print(f"Popped: #{last.id}({last.rotation})")
             self.last_popped_id = last.id
+            self.next_ix = last.id - 1
             self.remove_block(last.id)
             self.show_stack(ret)
             """
