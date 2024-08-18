@@ -187,7 +187,6 @@ class Solver():
       return True
 
    def try_place_at(self, p: Pento, x: int, y: int) -> bool:
-      # print(f"Try place #{p.id} (Size=({p.width}x{p.height})) at ({x},{y}) with rotations {p.rotation}")
       for yy in range(p.height):
          for xx in range(p.width):
             if self.grid[y + yy][x + xx] > 0 and p.grid[yy][xx] > 0:
@@ -196,7 +195,6 @@ class Solver():
       if not self.check_floodfill(p, x, y):
          return False
 
-      # print("Placing")
       p.placed = True
       p.x = x
       p.y = y
