@@ -2,24 +2,33 @@
 
 WITH_FLIP = True
 
-# 110 solutions
+# 110 solutions without flip
+# 4678 solutions with flip
 WIDTH = 10
 HEIGHT = 6
 
+# 40 solutions without flip
+# 2020 solutions with flip
+WIDTH = 12
+HEIGHT = 5
 
-# 40 solutions
-#WIDTH = 12
-#HEIGHT = 5
-
-# 16 solutions
+# 16 solutions without flip
+# 736 solutions with flip
 #WIDTH = 15
 #HEIGHT = 4
 
-# No solutions
+# No solutions without flip
+# 4 solutions with flip
 #WIDTH = 20
 #HEIGHT = 3
 
+# 4 solutions without flip
+# 260 solutions with flip
+#WIDTH = 8
+#HEIGHT = 8
+
 MAX_ROTATIONS = [2, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1]
+
 CANFLIP = [False, False, False, True, False, True, True, True, True, False, False, False]
 
 PENTOS = [
@@ -167,6 +176,11 @@ class Solver():
       self.pentos = [Pento(p, mr, cf) for p, mr, cf in zip(PENTOS, MAX_ROTATIONS, CANFLIP)]
       self.stepcount = 0
       self.solutions = 0
+      if self.width == 8 and self.height == 8:
+         self.grid[3][3] = 99
+         self.grid[3][4] = 99
+         self.grid[4][3] = 99
+         self.grid[4][4] = 99
 
    def print(self, thegrid) -> None:
       # print(HIDE, end="")
@@ -174,7 +188,8 @@ class Solver():
       for y in range(self.height):
          for x in range(self.width):
             ix = thegrid[y][x]
-            print(COLORS[ix], end="")
+            color = COLORS[ix] if ix < 99 else DIM
+            print(color, end="")
             print(f"{thegrid[y][x]:3} ", end="")
             print(RESET, end="")
          print("")
@@ -187,14 +202,15 @@ class Solver():
       for y in range(self.height):
          for x in range(self.width):
             ix = self.floodfill_grid[y][x]
-            print(COLORS[ix], end="")
-            print(f"{self.floodfill_grid[y][x]:3} ", end="")
+            color = COLORS[ix] if ix < 99 else DIM
+            print(color, end="")
+            print(f"{ix:3} ", end="")
             print(RESET, end="")
          print("")
       #print(SHOW, end="")
 
    def iscomplete(self, thegrid) -> bool:
-      return all( [all( [x != 0 for x in row]) for row in thegrid])
+      return all([all([x != 0 for x in row]) for row in thegrid])
 
    def ff_neighbours(self, x: int, y: int):
       nn = [(1, 0), (-1, 0), (0, 1), (0, -1)]
@@ -259,8 +275,6 @@ class Solver():
 
       for yy in range(p.height):
          for xx in range(p.width):
-            if x + xx >= self.width or y + yy >= self.height:
-               return False
             if thegrid[y + yy][x + xx] > 0 and p.grid[yy][xx] > 0:
                return False
 
@@ -308,33 +322,19 @@ class Solver():
             continue
 
          for pp in p.orientations():
-            if self.try_place_at(thegrid, p, x, y):
+            if self.try_place_at(thegrid, pp, x, y):
                # self.print(thegrid)
                newstack = thestack[:]
-               newstack.append(StackItem(p.id, x, y, 0))
+               newstack.append(StackItem(pp.id, x, y, 0))
                newgrid = [row[:] for row in thegrid]
                #print(f"{self.stepcount}")
                #self.show_stack(newstack)
                #a = input()
                self.do_step(newgrid, newstack)
-               self.remove_piece(thegrid, p.id)
-         """
-         for r in range(p.max_rotations):
-            p.set_rotation(r)
-            x, y = next_spot
-            if self.try_place_at(thegrid, p, x, y):
-               # self.print(thegrid)
-               newstack = thestack[:]
-               newstack.append(StackItem(p.id, x, y, r))
-               newgrid = [row[:] for row in thegrid]
-               #print(f"{self.stepcount}")
-               #self.show_stack(newstack)
-               #a = input()
-               self.do_step(newgrid, newstack)
-               self.remove_piece(thegrid, p.id)
-         """
+               self.remove_piece(thegrid, pp.id)
+
    def show_stack(self, thestack: [StackItem]) -> None:
-      print("Stack:   ", end="")
+      print("Stack: ", end="")
       for s in thestack:
          print(f"{s} ", end="")
       print("")
