@@ -1,6 +1,6 @@
 # Pentomino Solver
 
-WITH_FLIP = True
+WITH_FLIP = False
 
 # 110 solutions without flip
 # 4678 solutions with flip
@@ -9,8 +9,8 @@ HEIGHT = 6
 
 # 40 solutions without flip
 # 2020 solutions with flip
-WIDTH = 12
-HEIGHT = 5
+# WIDTH = 12
+# HEIGHT = 5
 
 # 16 solutions without flip
 # 736 solutions with flip
